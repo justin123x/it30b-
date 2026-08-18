@@ -10,4 +10,4 @@
 
         # Utility commands
         \! cls 
-        mysqldump -u root -p --database library_db > C:\xampp\htdocs\dev\it30b\backups\library_db.sql
+        mysqldump -u root -p --database library_db > C:\xampp\htdocs\devs\it30b\backups\library_db.sql
