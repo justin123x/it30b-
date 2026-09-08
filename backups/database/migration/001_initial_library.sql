@@ -66,3 +66,18 @@ CONSTRAINT fk_borrow_book
   )ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_general_ci;
+
+  -- Insert statement #1: Inser Student
+  INSERT INTO students (
+    student_first_name,
+    student_last_name,
+    student_course
+)VALUES
+('NARUTO', 'UZUMAKI', 'BSIT'),
+('SASUKE', 'UCHIHA', 'BSIT'),
+('SAKURA', 'HARUNO', 'BSBA'),
+('KAKASHI', 'HATAKE', 'ITE');
+
+
+  -- Insert statement #2: Insert Book
+  -- Insert statement #3: Insert Borrow
