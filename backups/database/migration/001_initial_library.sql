@@ -80,4 +80,21 @@ CONSTRAINT fk_borrow_book
 
 
   -- Insert statement #2: Insert Book
+  INSERT INTO books (
+    book_title,
+    book_author,
+    book_category
+) VALUES
+    ('The Hobbit', 'J.R.R. Tolkien', 'Fantasy'),
+    ('Harry Potter and the Sorcerer''s Stone', 'J.K. Rowling', 'Fantasy'),
+    ('The Hunger Games', 'Suzanne Collins', 'Dystopian'),
+    ('The Alchemist', 'Paulo Coelho', 'Adventure'),
+    ('The Little Prince', 'Antoine de Saint-Exupery', 'Fiction');
   -- Insert statement #3: Insert Borrow
+INSERT INTO borrow (
+    student_id,
+    book_id
+) VALUES
+    (1, 2),
+    (2, 1),
+    (3, 3);
