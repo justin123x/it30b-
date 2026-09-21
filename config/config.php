@@ -3,7 +3,7 @@ session_start();
 
 require_once(__DIR__ . '/../includes/activity_logger.php');
 
-define('BASE_URL', 'http://localhost/it30b_navarro'); 
+define('BASE_URL', 'http://localhost/it30b-'); 
 
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'it30b_lab_db');
