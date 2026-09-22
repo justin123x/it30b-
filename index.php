@@ -29,22 +29,22 @@ die("Database connection failed" . $e->getMessage());
  session_start();
  
  //determine  current section
- $section = $_GET['section'] ?? 'students';
+ $section = $_GET['section'] ?? 'student';
  
  //Determine CRUD operation
  $action = $_GET['action'] ??'';
 
 //fetch students
-If($section==='students'){
+If($section==='student'){
 
 $stmt = $pdo->query("
 SELECT *
-FROM students 
+FROM student 
 ORDER BY student_id DESC
 
     ");
 
-    $students  = $stmt->fetchALL();
+    $student  = $stmt->fetchALL();
 }
 
 
@@ -65,14 +65,14 @@ ORDER BY student_id DESC
     <h1>Simple Library System</h1>
 
     <nav>
-        <a href="index.php?section=students">Students</a>
+        <a href="index.php?section=student">Students</a>
         <a href="index.php?section=books">Books</a>
         <a href="index.php?section=borrow">Borrow</a>
     </nav>
 
     <hr>
 
-    <?php if ($section === 'students'): ?>
+    <?php if ($section === 'student'): ?>
 
         <h1>Students</h1>
 
@@ -90,7 +90,7 @@ ORDER BY student_id DESC
 
             <tbody>
 
-                <?php foreach ($students as $student): ?>
+                <?php foreach ($student as $student): ?>
 
                     <tr>
                         <td>
