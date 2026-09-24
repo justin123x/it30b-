@@ -76,12 +76,16 @@ if($section==='student' && $action==='create'){
 if($section==='student' && $action==='update'){
     IF($_SERVER['REQUEST_METHOD'] ==='POST'){
 
+    $firstName = trim($_POST['student_first_name'] ?? ''); 
+    $firstName = trim($_POST['student_last_name'] ?? ''); 
+    $firstName = trim($_POST['student_course'] ?? ''); 
     $sql="
         UPDATE STUDENT
         SET
             student_first_name =?,
             student_last_name = ?,
             student_course = ?
+            WHERE'student_id = ?
             
             ";
 
@@ -141,6 +145,7 @@ if($section==='student' && $action==='update'){
         </p>
 
         <?php if($action==='create'): ?>
+            <?php if($action==='update'): ?>
             <h2>Create Student</h2>
 
             <form method="POST">
@@ -150,6 +155,7 @@ if($section==='student' && $action==='update'){
                 <br>
                 <input  type="text"
                         name="student_first_name"
+                        value="<?=htmlspecialchars($student['student_first_name']) ?>"
                         required
                 />
                 </p>
@@ -158,6 +164,7 @@ if($section==='student' && $action==='update'){
                 <br>
                 <input  type="text"
                         name="student_last_name"
+                        value="<?=htmlspecialchars($student['student_last_name']) ?>"
                         required
                 />
                 </p>
@@ -166,6 +173,7 @@ if($section==='student' && $action==='update'){
                 <br>
                 <input  type="text"
                         name="student_course"
+                        value="<?=htmlspecialchars($student['student_course']) ?>"
                         required
                 />
                 </p>
