@@ -144,7 +144,7 @@ ALTER TABLE `student`
 --
 
 --
--- Constraints for table `borrow`
+-- Constraints for table `borrow` 
 --
 ALTER TABLE `borrow`
   ADD CONSTRAINT `fk_borrow_book` FOREIGN KEY (`book_id`) REFERENCES `books` (`book_id`) ON UPDATE CASCADE,
