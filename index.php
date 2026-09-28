@@ -38,7 +38,7 @@ if($section === 'student'){
         ORDER BY student_id DESC
     ");
 
-    $students = $stmt->fetchAll();
+    $student = $stmt->fetchAll();
 }
 
 // Create Student
@@ -50,7 +50,7 @@ if($section==='student' && $action==='create'){
 
         if($firstName !== '' && $lastName !== '' && $course !== ''){
             $sql = "
-                INSERT INTO students(
+                INSERT INTO student(
                     student_first_name,
                     student_last_name,
                     student_course
@@ -66,7 +66,7 @@ if($section==='student' && $action==='create'){
                 $course
             ]); 
 
-            header("Location: index.php?section=students");
+            header("Location: index.php?section=student");
             exit;
         }
     }
@@ -74,41 +74,13 @@ if($section==='student' && $action==='create'){
 
 // Update Student
 if($section==='student' && $action==='update'){
-    IF($_SERVER['REQUEST_METHOD'] ==='POST'){
+    $studentId = (int) ($_GET['id']) ?? 00;
 
-    $firstName = trim($_POST['student_first_name'] ?? ''); 
-    $firstName = trim($_POST['student_last_name'] ?? ''); 
-    $firstName = trim($_POST['student_course'] ?? ''); 
-    $sql="
-        UPDATE STUDENT
-        SET
-            student_first_name =?,
-            student_last_name = ?,
-            student_course = ?
-            WHERE'student_id = ?
-            
-            ";
-
-            $stmt = $spod->prepare($sql);
-
-            $stmt = execute([
-                $firstName,
-                $lastName,
-                $coursE,
-                $studentId
-            ]);
-
-            header("Location; index.php?section=student");
-            exit;
-
-    }
-
-    // Retrieve Student Info
+    // Retrieve Student Info by default
     $stmt = $pdo->prepare("
-        SELECT =
+        SELECT *
         FROM student
         WHERE student_id = ?
-
     ");
 
     $stmt->execute([$studentId]);
@@ -116,9 +88,40 @@ if($section==='student' && $action==='update'){
     $student = $stmt->fetch();
 
     if(!$student){
-
+        die("Student Not Found");
     }
+
+    // Update student on post
+    if($_SERVER['REQUEST_METHOD'] ==='POST'){
+
+        $firstName = trim($_POST['student_first_name'] ?? '');
+        $lastName = trim($_POST['student_last_name'] ?? '');
+        $course = trim($_POST['student_course'] ?? '');
+
+        $sql=("
+            UPDATE STUDENT
+            SET
+                student_first_name = ?,
+                student_last_name = ?,
+                student_course = ?
+            WHERE student_id = ?
+        ");
+
+        $stmt = $pdo->prepare($sql);
+
+        $stmt->execute([
+            $firstName,
+            $lastName,
+            $course,
+            $studentId
+        ]);
+
+        header("Location: index.php?section=student");
+        exit;
+    }
+
 }
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -130,7 +133,7 @@ if($section==='student' && $action==='update'){
 <body>
     <h1>Simple Library System</h1>
     <nav>
-        <a href="index.php?section=student">Students</a>
+        <a href="index.php?section=student">Student</a>
         <a href="index.php?section=books">Books</a>
         <a href="index.php?section=borrow">Borrow</a>
     </nav>
@@ -145,11 +148,47 @@ if($section==='student' && $action==='update'){
         </p>
 
         <?php if($action==='create'): ?>
-            <?php if($action==='update'): ?>
             <h2>Create Student</h2>
 
             <form method="POST">
-            
+                <p>
+                <label>First Name:</label>
+                <br>
+                <input  type="text"
+                        name="student_first_name"
+                        required
+                />
+                </p>
+                <p>
+                <label>Last Name:</label>
+                <br>
+                <input  type="text"
+                        name="student_last_name"
+                        required
+                />
+                </p>
+                <p>
+                <label>Course:</label>
+                <br>
+                <input  type="text"
+                        name="student_course"
+                        required
+                />
+                </p>
+
+                <button type="submit">
+                    Save
+                </button>
+
+                <a href="index.php?section=student">
+                    Cancel
+                </a>
+            </form>
+
+        <?php elseif($action==='update'):?>
+            <h2>Update Student Info</h2>
+
+            <form method="POST">
                 <p>
                 <label>First Name:</label>
                 <br>
@@ -179,15 +218,14 @@ if($section==='student' && $action==='update'){
                 </p>
 
                 <button type="submit">
-                    Save
+                    Update
                 </button>
 
-                <a href="index.php?section=students">
+                <a href="index.php?section=student">
                     Cancel
                 </a>
             </form>
-            <?php if($action==='update'):?>
-                <h2>Update Student Info</h2>
+
         <?php else: ?>
             <table>
             <thead>
@@ -201,40 +239,34 @@ if($section==='student' && $action==='update'){
                 </tr>
             </thead>
             <tbody>
-                <?php foreach($students as $student): ?>
-
+                <?php foreach($student as $student): ?>
                     <tr>
                         <td>
                             <?=htmlspecialchars($student['student_id']) ?>
                         </td>
-
                         <td>
                             <?=htmlspecialchars($student['student_first_name']) ?>
                         </td>
-
                         <td>
                             <?=htmlspecialchars($student['student_last_name']) ?>
                         </td>
-
                         <td>
                             <?=htmlspecialchars($student['student_course']) ?>
                         </td>
-
                         <td>
                             <?=htmlspecialchars($student['student_created_at']) ?>
                         </td>
-                        
                         <td>
-                            <a href="index.php?section=student&action=update&id+<?= $student['student_id'] ?>">
+                            <a href="index.php?section=student&action=update&id=<?=$student['student_id']?>">
                                 Edit
                             </a>
-                                |
-                                <a href="#">Delete</a>
+
+                            <a>Delete</a>
                         </td>
                     </tr>
                     <?php endforeach?>
             </tbody>
-        </table>
+            </table>
         <?php endif;?>
     <?php endif; ?>
 
