@@ -732,7 +732,7 @@ if($section==='borrow' && $action==='return'){
                     <option value="">
                         -- Select Book--
                     </option>
-                    <?php foreach($books as $book): ?>
+                    <?php foreach($book as $book): ?>
                         <option value="<?= $book['book_id']?> ">
                             <?= htmlspecialchars(
                                 $book['book_title']
