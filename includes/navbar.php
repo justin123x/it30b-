@@ -6,94 +6,93 @@ function navActive($section, $currentSection){
 }
 ?>
 
-<!-- Material Icon -->
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
 <style>
-    .app-header{
-        display:flex;
-        justify-content:space-between;
-        align-items:center;
-        margin-bottom:2rem;
-        flex-wrap:wrap;
+    .app-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
         gap: 1rem;
         font-family: Roboto, system-ui, -apple-system, sans-serif;
+        width: 100%;
+        max-width: 1300px;
     }
 
     .app-header h1 {
-    font-weight: 400;
-    font-size: 1.8rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: #212121;
-    margin: 0;
-}
-
-    .app-header h1 .material-icons{
-        font-size:2.2rem;
-        color: #1976d2; /* Primary Blue */
+        font-weight: 400;
+        font-size: 1.8rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #212121;
+        margin: 0;
     }
 
-   .nav-links {
-    display: flex;
-    gap: 0.25rem;
-    background: transparent;
-}
+    .app-header h1 .material-icons {
+        font-size: 2.2rem;
+        color: #1976d2;
+    }
 
-    .nav-links a{
-        text-decoration:none;
-        color:#616161;
-        font-size:0.9rem;
-        font-weight:500;
-        text-transform:uppercase;
-        letter-spacing:0.5px;
+    .nav-links {
+        display: flex;
+        gap: 0.25rem;
+        background: transparent;
+    }
+
+    .nav-links a {
+        text-decoration: none;
+        color: #616161;
+        font-size: 0.9rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
         padding: 0.6rem 1.2rem;
-        border-radius:4px;
+        border-radius: 4px;
         transition: background-color 0.2s, color 0.2s;
-        display:flex;
-        align-items:center;
-        gap:0.35rem;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
     }
 
-    .nav-links a .material-icon{
-        font-size:1.2rem;
+    .nav-links a .material-icons {
+        font-size: 1.2rem;
     }
 
-
-    .nav-links a:hover{
-        background:#e3f2fd;
-        color:#1976d2;
+    .nav-links a:hover {
+        background: #e3f2fd;
+        color: #1976d2;
     }
 
-    .nav-links a.active{
+    .nav-links a.active {
         color: #1976d2;
         box-shadow: 0 2px 2px 0 rgba(0,0,0,0.14), 0 3px 1px -2px rgba(0,0,0,0.12), 0 1px 5px 0 rgba(0,0,0,0.2);
     }
 
-    .nav-links a.active .material-icons{
+    .nav-links a.active .material-icons {
         color: #1976d2;
     }
 
-    @media (max-width:760px){
-        .app-header{
-            flex-direction:column;
-            align-items:flex-start;
+    @media (max-width: 760px) {
+        .app-header {
+            flex-direction: column;
+            align-items: flex-start;
         }
 
-        .nav-links{
+        .nav-links {
             width: 100%;
-            overflow-x:auto;
-            padding-bottom:0.5rem;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
         }
 
-        .nav-links a{
+        .nav-links a {
             padding: 0.5rem 0.8rem;
-            font-size:.8rem;
-            white-space:nowrap;
+            font-size: 0.8rem;
+            white-space: nowrap;
         }
     }
-
 </style>
 
 <header class="app-header">
@@ -108,7 +107,7 @@ function navActive($section, $currentSection){
             Dashboard
         </a>
 
-        <a href="index.php?section=students" class="<?= navActive('students', $currentSection) ?>">
+        <a href="index.php?section=student" class="<?= navActive('student', $currentSection) ?>">
             <span class="material-icons">people</span>
             Students
         </a>
@@ -123,5 +122,4 @@ function navActive($section, $currentSection){
             Borrow
         </a>
     </nav>
-
 </header>

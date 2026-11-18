@@ -380,6 +380,7 @@ if($section==='borrow' && $action==='return'){
     <nav>
         <a href="index.php?section=student">Student</a>
         <a href="index.php?section=books">Books</a>
+         <a href="dashboard.php">Dashboard</a>
         <a href="index.php?section=borrow">Borrow</a>
     </nav>
     <hr>
