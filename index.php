@@ -733,7 +733,7 @@ if($section==='borrow' && $action==='return'){
                     <option value="">
                         -- Select Book--
                     </option>
-                    <?php foreach($book as $book): ?>
+                    <?php foreach($books as $book): ?>
                         <option value="<?= $book['book_id']?> ">
                             <?= htmlspecialchars(
                                 $book['book_title']
@@ -747,11 +747,11 @@ if($section==='borrow' && $action==='return'){
                 <br>
                 <button type="submit">
                     Borrow
-                </button
+                </button>
 
                 <a href="index.php?section=borrow">
                     Cancel
-                </a
+                </a>
             </form>
 
 
