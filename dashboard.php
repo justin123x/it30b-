@@ -1,13 +1,4 @@
-<?php
-function tableExists(PDO $pdo, string $tableName): bool
-{
-    $stmt = $pdo->prepare(
-        "SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ? LIMIT 1"
-    );
-    $stmt->execute([$tableName]);
-    return (bool) $stmt->fetchColumn();
-}
-
+<?php 
 $host = 'localhost';
 $db   = 'it30b_lab_db';
 $user = 'root';
@@ -28,32 +19,46 @@ try {
     die("Database connection failed: " . $e->getMessage());
 }
 
-$studentTable = tableExists($pdo, 'students') ? 'students' : 'student';
-
-$studentCount  = $pdo->query("SELECT COUNT(*) FROM `$studentTable`")->fetchColumn();
-$bookCount     = $pdo->query("SELECT COUNT(*) FROM books")->fetchColumn();
-$totalBorrows  = $pdo->query("SELECT COUNT(*) FROM borrow")->fetchColumn();
+$studentCount = $pdo->query("SELECT COUNT(*) FROM student")->fetchColumn();
+$bookCount = $pdo->query("SELECT COUNT(*) FROM books")->fetchColumn();
+$totalBorrows = $pdo->query("SELECT COUNT(*) FROM borrow")->fetchColumn();
 $activeBorrows = $pdo->query("SELECT COUNT(*) FROM borrow WHERE borrow_return_date IS NULL")->fetchColumn();
 
-$categoryRows = $pdo->query("SELECT book_category AS label, COUNT(*) AS total FROM books GROUP BY book_category ORDER BY total DESC")->fetchAll();
+$catStmt = $pdo->query("SELECT book_category AS category, COUNT(*) as cnt FROM books GROUP BY book_category");
 $categories = [];
 $categoryCounts = [];
-foreach ($categoryRows as $row) {
-    $categories[] = $row['label'];
-    $categoryCounts[] = (int) $row['total'];
+while ($row = $catStmt->fetch()) {
+    $categories[] = $row['category'];
+    $categoryCounts[] = (int)$row['cnt'];
 }
 
-$recentBorrows = $pdo->query("
-    SELECT 
-        CONCAT(s.student_first_name, ' ', s.student_last_name) AS student_name,
-        b.book_title,
-        br.borrow_return_date
-    FROM borrow br
-    INNER JOIN `$studentTable` s ON br.student_id = s.student_id
-    INNER JOIN books b ON br.book_id = b.book_id
-    ORDER BY br.borrow_date DESC
-    LIMIT 5
-")->fetchAll();
+// ---------- 3. BORROW ACTIVITY LAST 7 DAYS ----------
+
+$dailyStmt = $pdo->query("
+    SELECT DATE(borrow_date) AS day, COUNT(*) AS cnt
+    FROM borrow
+    WHERE borrow_date >= CURDATE() - INTERVAL 6 DAY
+    GROUP BY DATE(borrow_date)
+    ORDER BY day ASC
+");
+
+$borrowByDay = [];
+
+while ($row = $dailyStmt->fetch()) {
+    $borrowByDay[$row['day']] = (int) $row['cnt'];
+}
+
+// Generate labels and counts for the last 7 days
+
+$dayLabels = [];
+$dailyBorrows = [];
+
+for ($i = 6; $i >= 0; $i--) {
+    $date = date('Y-m-d', strtotime("-$i days"));
+
+    $dayLabels[] = date('D', strtotime($date));
+    $dailyBorrows[] = $borrowByDay[$date] ?? 0;
+}
 ?>
 
 <!DOCTYPE html>
@@ -62,55 +67,55 @@ $recentBorrows = $pdo->query("
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Library · Dashboard</title>
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
+        
+        /* Materialize Base Typography */
         body {
-            background: #f5f5f5;
+            background: #f5f5f5; /* Material Grey 100 */
             font-family: Roboto, system-ui, -apple-system, sans-serif;
-            color: #212121;
+            color: #212121; /* Material Grey 900 */
             padding: 2rem 1.5rem;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
-
+        
         .dashboard { max-width: 1300px; width: 100%; }
 
+        /* Materialize Standard Card */
         .stat-card, .chart-card, .recent-borrows {
             background: #ffffff;
             border-radius: 2px;
-            box-shadow: 0 2px 2px 0 rgba(0,0,0,0.14),
-                        0 3px 1px -2px rgba(0,0,0,0.12),
+            box-shadow: 0 2px 2px 0 rgba(0,0,0,0.14), 
+                        0 3px 1px -2px rgba(0,0,0,0.12), 
                         0 1px 5px 0 rgba(0,0,0,0.2);
             transition: box-shadow 0.3s;
         }
-
         .stat-card:hover, .chart-card:hover, .recent-borrows:hover {
-            box-shadow: 0 4px 5px 0 rgba(0,0,0,0.14),
-                        0 1px 10px 0 rgba(0,0,0,0.12),
+            box-shadow: 0 4px 5px 0 rgba(0,0,0,0.14), 
+                        0 1px 10px 0 rgba(0,0,0,0.12), 
                         0 2px 4px -1px rgba(0,0,0,0.3);
         }
 
+        /* ---- KPI CARDS ---- */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1.25rem;
             margin-bottom: 2rem;
         }
-
         .stat-card {
             padding: 1.5rem;
             display: flex;
             flex-direction: column;
-            border-top: 3px solid #1976d2;
+            border-top: 3px solid #1976d2; /* Material Blue Accent */
         }
-
-        .stat-card:nth-child(2) { border-top-color: #4caf50; }
-        .stat-card:nth-child(3) { border-top-color: #ff9800; }
-        .stat-card:nth-child(4) { border-top-color: #f44336; }
+        .stat-card:nth-child(2) { border-top-color: #4caf50; } /* Green */
+        .stat-card:nth-child(3) { border-top-color: #ff9800; } /* Orange */
+        .stat-card:nth-child(4) { border-top-color: #f44336; } /* Red */
 
         .stat-header {
             display: flex;
@@ -118,44 +123,39 @@ $recentBorrows = $pdo->query("
             justify-content: space-between;
             margin-bottom: 0.5rem;
         }
-
         .stat-label {
             font-size: 0.85rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             font-weight: 500;
-            color: #757575;
+            color: #757575; /* Material Grey 600 */
         }
-
         .stat-header .material-icons {
             font-size: 1.8rem;
-            color: #bdbdbd;
+            color: #bdbdbd; /* Material Grey 400 */
+        }
+        .stat-number { 
+            font-size: 2.5rem; 
+            font-weight: 400; 
+            color: #212121; 
+            line-height: 1.2; 
+        }
+        .stat-sub { 
+            font-size: 0.85rem; 
+            color: #9e9e9e; 
+            margin-top: 0.3rem; 
         }
 
-        .stat-number {
-            font-size: 2.5rem;
-            font-weight: 400;
-            color: #212121;
-            line-height: 1.2;
-        }
-
-        .stat-sub {
-            font-size: 0.85rem;
-            color: #9e9e9e;
-            margin-top: 0.3rem;
-        }
-
+        /* ---- CHARTS ---- */
         .charts-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 1.5rem;
             margin-bottom: 2rem;
         }
-
         .chart-card {
             padding: 1.5rem;
         }
-
         .chart-title {
             font-size: 1.1rem;
             font-weight: 500;
@@ -167,7 +167,6 @@ $recentBorrows = $pdo->query("
             border-bottom: 1px solid #e0e0e0;
             padding-bottom: 0.8rem;
         }
-
         .chart-title span {
             font-weight: 500;
             color: #1976d2;
@@ -177,22 +176,20 @@ $recentBorrows = $pdo->query("
             align-items: center;
             gap: 0.25rem;
         }
-
         .chart-title span .material-icons {
             font-size: 1rem;
         }
-
-        canvas {
-            display: block;
-            width: 100% !important;
-            height: auto !important;
-            max-height: 200px;
+        canvas { 
+            display: block; 
+            width: 100% !important; 
+            height: auto !important; 
+            max-height: 200px; 
         }
 
+        /* ---- RECENT BORROWS ---- */
         .recent-borrows {
             padding: 1.5rem;
         }
-
         .recent-header {
             display: flex;
             justify-content: space-between;
@@ -201,7 +198,6 @@ $recentBorrows = $pdo->query("
             border-bottom: 1px solid #e0e0e0;
             padding-bottom: 0.8rem;
         }
-
         .recent-header h3 {
             font-weight: 500;
             font-size: 1.1rem;
@@ -210,11 +206,9 @@ $recentBorrows = $pdo->query("
             align-items: center;
             gap: 0.4rem;
         }
-
         .recent-header h3 .material-icons {
             color: #1976d2;
         }
-
         .recent-header a {
             font-size: 0.85rem;
             color: #1976d2;
@@ -225,11 +219,9 @@ $recentBorrows = $pdo->query("
             align-items: center;
             gap: 0.2rem;
         }
-
         .recent-header a:hover {
             text-decoration: underline;
         }
-
         .recent-header a .material-icons {
             font-size: 1rem;
         }
@@ -242,9 +234,8 @@ $recentBorrows = $pdo->query("
             border-bottom: 1px solid #eeeeee;
             font-size: 0.95rem;
         }
-
         .borrow-row:last-child { border-bottom: none; }
-
+        
         .borrow-student {
             font-weight: 500;
             color: #424242;
@@ -253,7 +244,6 @@ $recentBorrows = $pdo->query("
             align-items: center;
             gap: 0.5rem;
         }
-
         .borrow-book {
             color: #616161;
             width: 45%;
@@ -264,17 +254,17 @@ $recentBorrows = $pdo->query("
             align-items: center;
             gap: 0.4rem;
         }
-
         .borrow-student .material-icons,
         .borrow-book .material-icons {
             font-size: 1.1rem;
             color: #9e9e9e;
         }
 
+        /* Material Design Chips */
         .borrow-status {
             font-size: 0.75rem;
             padding: 0.3rem 0.8rem;
-            border-radius: 16px;
+            border-radius: 16px; /* Chip border radius */
             font-weight: 500;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -282,19 +272,16 @@ $recentBorrows = $pdo->query("
             align-items: center;
             gap: 0.3rem;
         }
-
         .borrow-status .material-icons {
             font-size: 0.9rem;
         }
-
-        .borrow-status.returned {
-            background: #e8f5e9;
-            color: #2e7d32;
+        .borrow-status.returned { 
+            background: #e8f5e9; /* Green 50 */
+            color: #2e7d32;      /* Green 800 */
         }
-
-        .borrow-status.borrowed {
-            background: #fff3e0;
-            color: #ef6c00;
+        .borrow-status.borrowed { 
+            background: #fff3e0; /* Orange 50 */
+            color: #ef6c00;      /* Orange 800 */
         }
 
         .footer-note {
@@ -308,169 +295,229 @@ $recentBorrows = $pdo->query("
         @media (max-width: 760px) {
             .charts-grid { grid-template-columns: 1fr; }
             .stats-grid { grid-template-columns: 1fr 1fr; }
-            .borrow-student, .borrow-book { width: auto; flex: 1; }
+            .borrow-student,
+            .borrow-book { width: auto; flex: 1; }
             .borrow-row { flex-wrap: wrap; gap: 0.5rem; }
         }
     </style>
 </head>
 <body>
-    <?php include 'includes/navbar.php'; ?>
 
-    <main class="dashboard">
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-header">
-                    <span class="stat-label">Students</span>
-                    <span class="material-icons">school</span>
-                </div>
-                <div class="stat-number"><?= htmlspecialchars((string) $studentCount) ?></div>
-                <div class="stat-sub">enrolled</div>
+    <?php include 'includes/navbar.php' ?>
+<div class="dashboard">
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-header">
+                <span class="stat-label">Students</span>
+                <span class="material-icons">school</span>
             </div>
-
-            <div class="stat-card">
-                <div class="stat-header">
-                    <span class="stat-label">Books</span>
-                    <span class="material-icons">auto_stories</span>
-                </div>
-                <div class="stat-number"><?= htmlspecialchars((string) $bookCount) ?></div>
-                <div class="stat-sub">in collection</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-header">
-                    <span class="stat-label">Borrow records</span>
-                    <span class="material-icons">history</span>
-                </div>
-                <div class="stat-number"><?= htmlspecialchars((string) $totalBorrows) ?></div>
-                <div class="stat-sub">all time</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-header">
-                    <span class="stat-label">Active loans</span>
-                    <span class="material-icons">pending_actions</span>
-                </div>
-                <div class="stat-number"><?= htmlspecialchars((string) $activeBorrows) ?></div>
-                <div class="stat-sub">not returned</div>
-            </div>
+            <div class="stat-number"><?= $studentCount ?></div>
+            <div class="stat-sub">enrol led</div>
         </div>
 
-        <div class="charts-grid">
-            <div class="chart-card">
-                <div class="chart-title">
-                    Books by category
-                    <span>
-                        <span class="material-icons">category</span>
-                        collection
-                    </span>
-                </div>
-                <canvas id="categoryChart" width="400" height="200"></canvas>
+        <div class="stat-card">
+            <div class="stat-header">
+                <span class="stat-label">Books</span>
+                <span class="material-icons">auto_stories</span>
             </div>
+            <div class="stat-number"><?= $bookCount ?></div>
+            <div class="stat-sub">in collection</div>
         </div>
 
-        <div class="recent-borrows">
-            <div class="recent-header">
-                <h3>
-                    <span class="material-icons">history</span>
-                    Recent borrows
-                </h3>
-                <a href="#">
-                    View all
-                    <span class="material-icons">chevron_right</span>
-                </a>
+        <div class="stat-card">
+            <div class="stat-header">
+                <span class="stat-label">Borrow records</span>
+                <span class="material-icons">history</span>
             </div>
-
-            <?php foreach ($recentBorrows as $row): ?>
-                <div class="borrow-row">
-                    <div class="borrow-student">
-                        <span class="material-icons">person</span>
-                        <?= htmlspecialchars($row['student_name']) ?>
-                    </div>
-                    <div class="borrow-book">
-                        <span class="material-icons">menu_book</span>
-                        <?= htmlspecialchars($row['book_title']) ?>
-                    </div>
-                    <div class="borrow-status <?= $row['borrow_return_date'] ? 'returned' : 'borrowed' ?>">
-                        <span class="material-icons"><?= $row['borrow_return_date'] ? 'check_circle' : 'hourglass_top' ?></span>
-                        <?= $row['borrow_return_date'] ? 'Returned' : 'Borrowed' ?>
-                    </div>
-                </div>
-            <?php endforeach; ?>
+            <div class="stat-number"><?= $totalBorrows ?></div>
+            <div class="stat-sub">all time</div>
         </div>
 
-        <div class="footer-note">Library Dashboard Overview</div>
-    </main>
+        <div class="stat-card">
+            <div class="stat-header">
+                <span class="stat-label">Active loans</span>
+                <span class="material-icons">pending_actions</span>
+            </div>
+            <div class="stat-number"><?= $activeBorrows ?></div>
+            <div class="stat-sub">not returned</div>
+        </div>
+    </div>
+</div>
 
-    <script>
-        (function () {
-            const colors = {
-                blue: '#1976d2',
-                green: '#4caf50',
-                orange: '#ff9800',
-                red: '#f44336',
-                purple: '#9c27b0',
-                grey: '#9e9e9e'
-            };
+<!-- CHARTS -->
+<div class="charts-grid">
 
-            const catCanvas = document.getElementById('categoryChart');
-            if (catCanvas) {
-                const catCtx = catCanvas.getContext('2d');
-                new Chart(catCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: <?= json_encode($categories) ?>,
-                        datasets: [{
-                            data: <?= json_encode($categoryCounts) ?>,
-                            backgroundColor: [
-                                colors.blue,
-                                colors.green,
-                                colors.orange,
-                                colors.red,
-                                colors.purple,
-                                colors.grey
-                            ],
-                            borderWidth: 2,
-                            borderColor: '#ffffff',
-                            hoverOffset: 4
-                        }]
+    <!-- Pie Chart - Book Categories-->
+    <div class="chart-card">
+        <div class="chart-title">
+            Books by category
+            <span>
+                <span class="material-icons">category</span>
+                collection
+            </span>
+        </div>
+        <canvas id="categoryChart" width="400" height="200"></canvas>
+    </div>
+
+    <!-- Bar Chart: Borrow Activity -->
+    <div class="chart-card">
+        <div class="chart-title">
+            Borrows · last 7 days
+
+            <span>
+                <span class="material-icons">trending_up</span>
+                activity
+            </span>
+        </div>
+
+        <canvas id="borrowChart" width="400" height="200"></canvas>
+    </div>
+
+</div>
+    
+</body>
+<script>
+    (function() {
+        // Materialize standard palette
+        const colors = {
+            blue: '#1976d2',
+            green: '#4caf50',
+            orange: '#ff9800',
+            red: '#f44336',
+            purple: '#9c27b0',
+            grey: '#9e9e9e'
+        };
+
+        // ---------- DOUGHNUT : BOOKS BY CATEGORY ----------
+        const catCtx = document.getElementById('categoryChart').getContext('2d');
+        new Chart(catCtx, {
+            type: 'doughnut',
+            data: {
+                labels: <?= json_encode($categories) ?>,
+                datasets: [{
+                    data: <?= json_encode($categoryCounts) ?>,
+                    backgroundColor: [
+                        colors.blue, colors.green, colors.orange, colors.red, colors.purple, colors.grey
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                cutout: '65%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 12,
+                            boxHeight: 12,
+                            usePointStyle: false, // Materialize usually uses squares
+                            padding: 16,
+                            font: { size: 12, family: 'Roboto' },
+                            color: '#616161'
+                        }
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        cutout: '65%',
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: {
-                                    boxWidth: 12,
-                                    boxHeight: 12,
-                                    padding: 16,
-                                    font: { size: 12, family: 'Roboto' },
-                                    color: '#616161'
-                                }
-                            },
-                            tooltip: {
-                                backgroundColor: '#212121',
-                                titleColor: '#ffffff',
-                                bodyColor: '#ffffff',
-                                padding: 10,
-                                cornerRadius: 4,
-                                displayColors: true,
-                                callbacks: {
-                                    label: function (context) {
-                                        const label = context.label || '';
-                                        const value = context.parsed || 0;
-                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                        const pct = total > 0 ? ((value / total) * 100).toFixed(0) : 0;
-                                        return ` ${label}: ${value} (${pct}%)`;
-                                    }
-                                }
+                    tooltip: {
+                        backgroundColor: '#212121',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                        padding: 10,
+                        cornerRadius: 4,
+                        displayColors: true,
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const pct = total > 0 ? ((value / total) * 100).toFixed(0) : 0;
+                                return ` ${label}: ${value} (${pct}%)`;
                             }
                         }
                     }
-                });
+                }
             }
-        })();
-    </script>
-</body>
+        });
+
+        // ---------- BAR: BORROWS LAST 7 DAYS ----------
+
+        const borrowCtx = document
+            .getElementById('borrowChart')
+            .getContext('2d');
+
+        new Chart(borrowCtx, {
+            type: 'bar',
+
+            data: {
+                labels: <?= json_encode($dayLabels) ?>,
+
+                datasets: [{
+                    label: 'Borrows',
+                    data: <?= json_encode($dailyBorrows) ?>,
+                    backgroundColor: colors.blue,
+                    borderRadius: 0, // Material flat bars are sharp
+
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.8
+                }]
+            },
+
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+
+                    tooltip: {
+                        backgroundColor: '#212121',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                        padding: 10,
+                        cornerRadius: 4,
+
+                        callbacks: {
+                            label: (ctx) => ` ${ctx.raw} borrows`
+                        }
+                    }
+                },
+
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: '#eeeeee',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            stepSize: 1,
+                            color: '#757575',
+                            font: {
+                                size: 11,
+                                family: 'Roboto'
+                            }
+                        }
+                    },
+
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#757575',
+                            font: {
+                                size: 11,
+                                family: 'Roboto'
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    })();
+</script>
 </html>
