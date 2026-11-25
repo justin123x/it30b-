@@ -158,7 +158,7 @@ $recentBorrows = $recentStmt->fetchAll();
         }
         .stat-sub { 
             font-size: 0.85rem; 
-            color: #9e9e9e; 
+            color: #9e9e9e;   
             margin-top: 0.3rem; 
         }
 
